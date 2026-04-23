@@ -12,50 +12,103 @@
 body{
   margin:0;
   font-family:"Segoe UI", Arial;
-  background:#eef3f8;
+  background:linear-gradient(135deg,#e8f0f7,#f5f9fc);
 }
 
 header{
-  background:#1f4f7a;
+  background:linear-gradient(90deg,#0f2f4f,#1f4f7a);
   color:white;
   text-align:center;
   padding:20px;
-  font-size:26px;
+  font-size:28px;
 }
 
 .controls{
   display:flex;
-  gap:10px;
   justify-content:center;
+  gap:10px;
   padding:15px;
   flex-wrap:wrap;
 }
 
-button{
+.controls input, .controls select{
   padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+button{
+  padding:10px 16px;
   border:none;
-  border-radius:6px;
+  border-radius:8px;
+  font-weight:bold;
   cursor:pointer;
 }
 
-.btn{background:#1f4f7a;color:white;}
-.btn-del{background:#c0392b;color:white;}
+.btn-azul{ background:#1f4f7a; color:white; }
+.btn-verde{ background:#2e8b57; color:white; }
+.btn-vermelho{ background:#c0392b; color:white; }
 
-.container{padding:20px;}
+.container{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+  padding:20px;
+}
+
+.linha{
+  display:grid;
+  gap:20px;
+}
+
+.linha1{ grid-template-columns:repeat(4,1fr); }
+.linha2{ grid-template-columns:repeat(3,1fr); }
+
+.card{
+  background:white;
+  border-radius:12px;
+  padding:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
+}
+
+.dia{
+  text-align:center;
+  font-weight:bold;
+  margin-bottom:10px;
+  color:#1f4f7a;
+}
+
+.faixa{
+  background:linear-gradient(90deg,#3a78c2,#5aa2f2);
+  color:white;
+  text-align:center;
+  padding:6px;
+  margin-top:6px;
+  border-radius:6px;
+}
+
+.subfaixa{
+  background:#7f8c8d;
+  color:white;
+  text-align:center;
+  font-size:11px;
+}
 
 table{
   width:100%;
   border-collapse:collapse;
-  font-size:12px;
+  font-size:10px;
 }
 
-td,th{
-  border:1px solid #ccc;
+th, td{
+  border:1px solid #ddd;
   padding:4px;
 }
 
-td[contenteditable]{background:#fff;}
-td[contenteditable]:focus{background:#fff9c4;}
+th{ background:#f4f6f8; }
+
+td[contenteditable]{ background:#fff; }
+td[contenteditable]:focus{ background:#fff9c4; }
 </style>
 </head>
 
@@ -65,72 +118,144 @@ td[contenteditable]:focus{background:#fff9c4;}
 
 <div class="controls">
   <input type="date" id="dataBase">
-  <button class="btn" onclick="gerarSemana()">Nova Semana</button>
+  <button class="btn-azul" onclick="gerarSemana()">Nova Semana</button>
+
+  <select id="listaSemanas" onchange="carregarSemanaSelecionada()">
+    <option value="">Semanas Salvas</option>
+  </select>
+
+  <button class="btn-verde" onclick="window.print()">Imprimir</button>
+  <button class="btn-vermelho" onclick="excluirSemana()">Excluir Semana</button>
 </div>
 
-<div id="agenda" class="container"></div>
+<div class="container" id="agenda"></div>
 
 <script>
 
-// 🔥 SUA CONFIG (JÁ COLOCADA)
+// 🔥 FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyDdwpWkqtfPZhKa3OC8Wydqv9swOS1rL28",
   authDomain: "agenda-clinica-2c5c3.firebaseapp.com",
-  projectId: "agenda-clinica-2c5c3",
-  storageBucket: "agenda-clinica-2c5c3.firebasestorage.app",
-  messagingSenderId: "200234101384",
-  appId: "1:200234101384:web:68fbd0410f981870d5cd3d",
-  measurementId: "G-GP3B13PPVR"
+  projectId: "agenda-clinica-2c5c3"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+// DADOS
+const salas = [
+  "Sala 05","Sala 06","Sala 07","Sala 08","Sala 09",
+  "Sala 10","Sala 11","Sala 12","USG","GO","Oftal","Áudio","Fisio"
+];
+
+const salasAndarManha = ["Sala 01","Sala 02","Sala 04","Sala 04"];
+const salasAndarTarde = ["Sala 01","Sala 02","Sala 04"];
+
+const dias = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
 
 let semanaAtual = "";
 
 // GERAR SEMANA
 function gerarSemana(){
 
-  const data = document.getElementById("dataBase").value;
-  if(!data) return alert("Escolha uma data!");
+  const valor = document.getElementById("dataBase").value;
+  if(!valor) return alert("Escolha uma data!");
 
-  semanaAtual = data;
+  semanaAtual = valor;
 
-  let html = "<table><tr><th>Sala</th><th>Início</th><th>Fim</th><th>Médico</th><th>Especialidade</th></tr>";
+  const base = new Date(valor);
 
-  for(let i=1;i<=10;i++){
-    html += `<tr>
-      <td>Sala ${i}</td>
-      <td contenteditable oninput="salvar()"></td>
-      <td contenteditable oninput="salvar()"></td>
-      <td contenteditable oninput="salvar()"></td>
-      <td contenteditable oninput="salvar()"></td>
-    </tr>`;
+  const container = document.getElementById("agenda");
+  container.innerHTML = "";
+
+  let linha1 = `<div class="linha linha1">`;
+  let linha2 = `<div class="linha linha2">`;
+
+  for(let i=1;i<=7;i++){
+
+    let d = new Date(base);
+    d.setDate(base.getDate() - base.getDay() + i);
+
+    let card = criarCard(dias[d.getDay()] + " " + d.toLocaleDateString());
+
+    if(i<=4) linha1 += card;
+    else linha2 += card;
   }
 
-  html += "</table>";
+  linha1 += `</div>`;
+  linha2 += `</div>`;
 
-  document.getElementById("agenda").innerHTML = html;
+  container.innerHTML = linha1 + linha2;
 
-  carregar();
+  atualizarListaSemanas();
+  setTimeout(carregarDados,200);
 }
 
-// SALVAR NA NUVEM
-function salvar(){
+// CARD
+function criarCard(titulo){
+  return `
+  <div class="card">
+    <div class="dia">${titulo}</div>
+
+    <div class="faixa">☀️ Manhã</div>
+    <div class="subfaixa">Térreo</div>
+    ${tabela(salas)}
+
+    <div class="subfaixa">1º Andar</div>
+    ${tabela(salasAndarManha)}
+
+    <div class="faixa" style="background:#2e8b57;">🌤️ Tarde</div>
+    <div class="subfaixa">Térreo</div>
+    ${tabela(salas)}
+
+    <div class="subfaixa">1º Andar</div>
+    ${tabela(salasAndarTarde)}
+  </div>`;
+}
+
+// TABELA
+function tabela(lista){
+  let html = `
+  <table>
+    <tr>
+      <th>Sala</th><th>Início</th><th>Fim</th><th>Médico</th><th>Especialidade</th>
+    </tr>
+  `;
+  lista.forEach(s=>{
+    html += `
+    <tr>
+      <td>${s}</td>
+      <td contenteditable></td>
+      <td contenteditable></td>
+      <td contenteditable></td>
+      <td contenteditable></td>
+    </tr>`;
+  });
+  html += "</table>";
+  return html;
+}
+
+// SALVAR
+function salvarDados(){
+
+  if(!semanaAtual) return;
 
   const dados = [];
-
   document.querySelectorAll("[contenteditable]").forEach(c=>{
     dados.push(c.innerText);
   });
 
+  // 🔥 NUVEM
   db.collection("agenda").doc(semanaAtual).set({
     dados: dados
   });
+
+  // 🔥 BACKUP LOCAL
+  localStorage.setItem("semana_"+semanaAtual, JSON.stringify(dados));
 }
 
-// CARREGAR DA NUVEM
-function carregar(){
+// CARREGAR
+function carregarDados(){
 
   db.collection("agenda").doc(semanaAtual).get()
   .then(doc=>{
@@ -142,15 +267,68 @@ function carregar(){
         c.innerText = dados[i] || "";
       });
 
+    } else {
+
+      const dadosLocal = JSON.parse(localStorage.getItem("semana_"+semanaAtual)) || [];
+
+      document.querySelectorAll("[contenteditable]").forEach((c,i)=>{
+        c.innerText = dadosLocal[i] || "";
+      });
+
     }
   });
 }
 
-// DATA AUTOMÁTICA
+// LISTA
+function atualizarListaSemanas(){
+  const select = document.getElementById("listaSemanas");
+  select.innerHTML = `<option>Semanas Salvas</option>`;
+
+  Object.keys(localStorage).forEach(key=>{
+    if(key.startsWith("semana_")){
+      const data = key.replace("semana_","");
+      select.innerHTML += `<option value="${data}">${data}</option>`;
+    }
+  });
+}
+
+// CARREGAR SEMANA
+function carregarSemanaSelecionada(){
+  const data = document.getElementById("listaSemanas").value;
+  if(!data) return;
+  document.getElementById("dataBase").value = data;
+  gerarSemana();
+}
+
+// EXCLUIR
+function excluirSemana(){
+
+  if(!semanaAtual){
+    alert("Selecione uma semana!");
+    return;
+  }
+
+  if(confirm("Deseja excluir essa semana?")){
+    localStorage.removeItem("semana_"+semanaAtual);
+    document.getElementById("agenda").innerHTML="";
+    atualizarListaSemanas();
+  }
+}
+
+// AUTO SAVE
+document.addEventListener("input", e=>{
+  if(e.target.hasAttribute("contenteditable")){
+    salvarDados();
+  }
+});
+
+// INICIO
 window.onload = function(){
   const hoje = new Date().toISOString().split("T")[0];
   document.getElementById("dataBase").value = hoje;
-};
+  atualizarListaSemanas();
+  gerarSemana();
+}
 
 </script>
 
