@@ -2,26 +2,23 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Agenda Clínica Profissional</title>
+<title>Agenda Clínica</title>
 
 <style>
-
 body{
   margin:0;
   font-family:"Segoe UI", Arial;
-  background:#edf1f5;
+  background:linear-gradient(135deg,#e8f0f7,#f5f9fc);
 }
 
-/* HEADER */
 header{
-  background:#0f2f4f;
+  background:linear-gradient(90deg,#0f2f4f,#1f4f7a);
   color:white;
   text-align:center;
-  padding:18px;
-  font-size:26px;
+  padding:20px;
+  font-size:28px;
 }
 
-/* CONTROLES */
 .controls{
   display:flex;
   justify-content:center;
@@ -30,14 +27,30 @@ header{
   flex-wrap:wrap;
 }
 
-.controls input, .controls button{
+.controls input, .controls select{
   padding:10px;
   border-radius:8px;
   border:1px solid #ccc;
-  cursor:pointer;
 }
 
-/* GRID */
+button{
+  padding:10px 16px;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.btn-azul{ background:#1f4f7a; color:white; }
+.btn-azul:hover{ background:#3a78c2; transform:scale(1.05); }
+
+.btn-verde{ background:#2e8b57; color:white; }
+.btn-verde:hover{ background:#3cb371; }
+
+.btn-vermelho{ background:#c0392b; color:white; }
+.btn-vermelho:hover{ background:#e74c3c; }
+
 .container{
   display:flex;
   flex-direction:column;
@@ -45,53 +58,50 @@ header{
   padding:20px;
 }
 
-/* LINHAS */
 .linha{
   display:grid;
   gap:20px;
 }
 
-.linha1{
-  grid-template-columns:repeat(4,1fr);
-}
+.linha1{ grid-template-columns:repeat(4,1fr); }
+.linha2{ grid-template-columns:repeat(3,1fr); }
 
-.linha2{
-  grid-template-columns:repeat(3,1fr);
-}
-
-/* CARD */
 .card{
   background:white;
-  border-radius:10px;
+  border-radius:12px;
   padding:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
+  transition:0.2s;
 }
 
-/* DIA */
+.card:hover{ transform:scale(1.02); }
+
 .dia{
   text-align:center;
   font-weight:bold;
-  margin-bottom:8px;
+  margin-bottom:10px;
+  font-size:14px;
+  color:#1f4f7a;
 }
 
-/* FAIXAS */
 .faixa{
-  background:#3a78c2;
+  background:linear-gradient(90deg,#3a78c2,#5aa2f2);
   color:white;
   text-align:center;
-  padding:5px;
-  font-size:13px;
-  margin-top:5px;
+  padding:6px;
+  font-size:12px;
+  margin-top:6px;
+  border-radius:6px;
 }
 
 .subfaixa{
-  background:#95a5a6;
+  background:#7f8c8d;
   color:white;
   text-align:center;
   font-size:11px;
+  border-radius:4px;
 }
 
-/* TABELA */
 table{
   width:100%;
   border-collapse:collapse;
@@ -100,52 +110,66 @@ table{
 
 th, td{
   border:1px solid #ddd;
-  padding:3px;
+  padding:4px;
 }
 
-th{
-  background:#f2f2f2;
-}
+th{ background:#f4f6f8; }
 
 td[contenteditable]{
   background:#fff;
 }
 
+td[contenteditable]:focus{
+  background:#fff9c4;
+  outline:none;
+}
 </style>
-
 </head>
 
 <body>
 
-<header>📅 Agenda Clínica Profissional</header>
+<header>📅 Agenda Clínica</header>
 
 <div class="controls">
   <input type="date" id="dataBase">
-  <button onclick="gerarSemana()">Gerar Semana</button>
-  <button onclick="window.print()">Imprimir</button>
-  <button onclick="limpar()">Limpar</button>
+
+  <button class="btn-azul" onclick="gerarSemana()">Nova Semana</button>
+
+  <select id="listaSemanas" onchange="carregarSemanaSelecionada()">
+    <option value="">Semanas Salvas</option>
+  </select>
+
+  <button class="btn-verde" onclick="window.print()">Imprimir</button>
+
+  <button class="btn-vermelho" onclick="excluirSemana()">Excluir Semana</button>
 </div>
 
 <div class="container" id="agenda"></div>
 
 <script>
 
-// SALAS TÉRREO
 const salas = [
   "Sala 05","Sala 06","Sala 07","Sala 08","Sala 09",
-  "Sala 10","Sala 11","Sala 12","USG","GO","Oftal","Áudio","Sala 04"
+  "Sala 10","Sala 11","Sala 12","USG","GO","Oftal","Áudio","Fisio"
 ];
 
-// 1º ANDAR
 const salasAndarManha = ["Sala 01","Sala 02","Sala 04","Sala 04"];
 const salasAndarTarde = ["Sala 01","Sala 02","Sala 04"];
 
 const dias = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
 
+let semanaAtual = "";
+
 function gerarSemana(){
 
-  const base = new Date(document.getElementById("dataBase").value);
-  if(isNaN(base)) return alert("Escolha uma data!");
+  const valor = document.getElementById("dataBase").value;
+  if(!valor) return alert("Escolha uma data!");
+
+  semanaAtual = valor;
+
+  alert("Nova semana criada!");
+
+  const base = new Date(valor);
 
   const container = document.getElementById("agenda");
   container.innerHTML = "";
@@ -158,92 +182,49 @@ function gerarSemana(){
     let d = new Date(base);
     d.setDate(base.getDate() - base.getDay() + i);
 
-    let card = criarCard(
-      dias[d.getDay()] + " " + d.toLocaleDateString()
-    );
+    let card = criarCard(dias[d.getDay()] + " " + d.toLocaleDateString());
 
-    if(i <= 4){
-      linha1 += card;
-    } else {
-      linha2 += card;
-    }
+    if(i<=4) linha1 += card;
+    else linha2 += card;
   }
 
   linha1 += `</div>`;
   linha2 += `</div>`;
 
   container.innerHTML = linha1 + linha2;
+
+  atualizarListaSemanas();
+  setTimeout(carregarDados,200);
 }
 
-/* CARD */
 function criarCard(titulo){
   return `
   <div class="card">
-
     <div class="dia">${titulo}</div>
 
     <div class="faixa">☀️ Manhã</div>
+    <div class="subfaixa">Térreo</div>
+    ${tabela(salas)}
 
-    <div class="subfaixa">TÉRREO</div>
-    ${tabelaTerreo()}
-
-    <div class="subfaixa">1º ANDAR</div>
-    ${tabelaAndar(salasAndarManha)}
+    <div class="subfaixa">1º Andar</div>
+    ${tabela(salasAndarManha)}
 
     <div class="faixa" style="background:#2e8b57;">🌤️ Tarde</div>
+    <div class="subfaixa">Térreo</div>
+    ${tabela(salas)}
 
-    <div class="subfaixa">TÉRREO</div>
-    ${tabelaTerreo()}
-
-    <div class="subfaixa">1º ANDAR</div>
-    ${tabelaAndar(salasAndarTarde)}
-
+    <div class="subfaixa">1º Andar</div>
+    ${tabela(salasAndarTarde)}
   </div>`;
 }
 
-/* TABELA TÉRREO */
-function tabelaTerreo(){
-
+function tabela(lista){
   let html = `
   <table>
     <tr>
-      <th style="width:70px;">Sala</th>
-      <th style="width:60px;">Início</th>
-      <th style="width:60px;">Fim</th>
-      <th style="width:120px;">Médico</th>
-      <th style="width:180px;">Especialidade</th>
+      <th>Sala</th><th>Início</th><th>Fim</th><th>Médico</th><th>Especialidade</th>
     </tr>
   `;
-
-  salas.forEach(s=>{
-    html += `
-    <tr>
-      <td>${s}</td>
-      <td contenteditable></td>
-      <td contenteditable></td>
-      <td contenteditable></td>
-      <td contenteditable></td>
-    </tr>`;
-  });
-
-  html += "</table>";
-  return html;
-}
-
-/* TABELA 1º ANDAR */
-function tabelaAndar(lista){
-
-  let html = `
-  <table>
-    <tr>
-      <th style="width:70px;">Sala</th>
-      <th style="width:60px;">Início</th>
-      <th style="width:60px;">Fim</th>
-      <th style="width:120px;">Médico</th>
-      <th style="width:180px;">Especialidade</th>
-    </tr>
-  `;
-
   lista.forEach(s=>{
     html += `
     <tr>
@@ -254,16 +235,73 @@ function tabelaAndar(lista){
       <td contenteditable></td>
     </tr>`;
   });
-
   html += "</table>";
   return html;
 }
 
-/* LIMPAR */
-function limpar(){
-  if(confirm("Limpar tudo?")){
-    document.querySelectorAll("[contenteditable]").forEach(e=>e.innerText="");
+function salvarDados(){
+  if(!semanaAtual) return;
+
+  const dados = [];
+  document.querySelectorAll("[contenteditable]").forEach(c=>{
+    dados.push(c.innerText);
+  });
+
+  localStorage.setItem("semana_"+semanaAtual, JSON.stringify(dados));
+}
+
+function carregarDados(){
+  const dados = JSON.parse(localStorage.getItem("semana_"+semanaAtual)) || [];
+  document.querySelectorAll("[contenteditable]").forEach((c,i)=>{
+    c.innerText = dados[i] || "";
+  });
+}
+
+function atualizarListaSemanas(){
+  const select = document.getElementById("listaSemanas");
+  select.innerHTML = `<option value="">Semanas Salvas</option>`;
+
+  Object.keys(localStorage).forEach(key=>{
+    if(key.startsWith("semana_")){
+      const data = key.replace("semana_","");
+      select.innerHTML += `<option value="${data}">${data}</option>`;
+    }
+  });
+}
+
+function carregarSemanaSelecionada(){
+  const data = document.getElementById("listaSemanas").value;
+  if(!data) return;
+  document.getElementById("dataBase").value = data;
+  gerarSemana();
+}
+
+function excluirSemana(){
+
+  if(!semanaAtual){
+    alert("Selecione uma semana!");
+    return;
   }
+
+  if(confirm("Deseja excluir essa semana?")){
+    localStorage.removeItem("semana_"+semanaAtual);
+    document.getElementById("agenda").innerHTML="";
+    atualizarListaSemanas();
+    alert("Semana excluída!");
+  }
+}
+
+document.addEventListener("input", e=>{
+  if(e.target.hasAttribute("contenteditable")){
+    salvarDados();
+  }
+});
+
+window.onload = function(){
+  const hoje = new Date().toISOString().split("T")[0];
+  document.getElementById("dataBase").value = hoje;
+  atualizarListaSemanas();
+  gerarSemana();
 }
 
 </script>
