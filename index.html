@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Agenda Clínica Profissional</title>
+
+<style>
+
+body{
+  margin:0;
+  font-family:"Segoe UI", Arial;
+  background:#edf1f5;
+}
+
+/* HEADER */
+header{
+  background:#0f2f4f;
+  color:white;
+  text-align:center;
+  padding:18px;
+  font-size:26px;
+}
+
+/* CONTROLES */
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  padding:15px;
+  flex-wrap:wrap;
+}
+
+.controls input, .controls button{
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  cursor:pointer;
+}
+
+/* GRID */
+.container{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+  padding:20px;
+}
+
+/* LINHAS */
+.linha{
+  display:grid;
+  gap:20px;
+}
+
+.linha1{
+  grid-template-columns:repeat(4,1fr);
+}
+
+.linha2{
+  grid-template-columns:repeat(3,1fr);
+}
+
+/* CARD */
+.card{
+  background:white;
+  border-radius:10px;
+  padding:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* DIA */
+.dia{
+  text-align:center;
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+/* FAIXAS */
+.faixa{
+  background:#3a78c2;
+  color:white;
+  text-align:center;
+  padding:5px;
+  font-size:13px;
+  margin-top:5px;
+}
+
+.subfaixa{
+  background:#95a5a6;
+  color:white;
+  text-align:center;
+  font-size:11px;
+}
+
+/* TABELA */
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:10px;
+}
+
+th, td{
+  border:1px solid #ddd;
+  padding:3px;
+}
+
+th{
+  background:#f2f2f2;
+}
+
+td[contenteditable]{
+  background:#fff;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>📅 Agenda Clínica Profissional</header>
+
+<div class="controls">
+  <input type="date" id="dataBase">
+  <button onclick="gerarSemana()">Gerar Semana</button>
+  <button onclick="window.print()">Imprimir</button>
+  <button onclick="limpar()">Limpar</button>
+</div>
+
+<div class="container" id="agenda"></div>
+
+<script>
+
+// SALAS TÉRREO
+const salas = [
+  "Sala 05","Sala 06","Sala 07","Sala 08","Sala 09",
+  "Sala 10","Sala 11","Sala 12","USG","GO","Oftal","Áudio","Sala 04"
+];
+
+// 1º ANDAR
+const salasAndarManha = ["Sala 01","Sala 02","Sala 04","Sala 04"];
+const salasAndarTarde = ["Sala 01","Sala 02","Sala 04"];
+
+const dias = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+
+function gerarSemana(){
+
+  const base = new Date(document.getElementById("dataBase").value);
+  if(isNaN(base)) return alert("Escolha uma data!");
+
+  const container = document.getElementById("agenda");
+  container.innerHTML = "";
+
+  let linha1 = `<div class="linha linha1">`;
+  let linha2 = `<div class="linha linha2">`;
+
+  for(let i=1;i<=7;i++){
+
+    let d = new Date(base);
+    d.setDate(base.getDate() - base.getDay() + i);
+
+    let card = criarCard(
+      dias[d.getDay()] + " " + d.toLocaleDateString()
+    );
+
+    if(i <= 4){
+      linha1 += card;
+    } else {
+      linha2 += card;
+    }
+  }
+
+  linha1 += `</div>`;
+  linha2 += `</div>`;
+
+  container.innerHTML = linha1 + linha2;
+}
+
+/* CARD */
+function criarCard(titulo){
+  return `
+  <div class="card">
+
+    <div class="dia">${titulo}</div>
+
+    <div class="faixa">☀️ Manhã</div>
+
+    <div class="subfaixa">TÉRREO</div>
+    ${tabelaTerreo()}
+
+    <div class="subfaixa">1º ANDAR</div>
+    ${tabelaAndar(salasAndarManha)}
+
+    <div class="faixa" style="background:#2e8b57;">🌤️ Tarde</div>
+
+    <div class="subfaixa">TÉRREO</div>
+    ${tabelaTerreo()}
+
+    <div class="subfaixa">1º ANDAR</div>
+    ${tabelaAndar(salasAndarTarde)}
+
+  </div>`;
+}
+
+/* TABELA TÉRREO */
+function tabelaTerreo(){
+
+  let html = `
+  <table>
+    <tr>
+      <th style="width:70px;">Sala</th>
+      <th style="width:60px;">Início</th>
+      <th style="width:60px;">Fim</th>
+      <th style="width:120px;">Médico</th>
+      <th style="width:180px;">Especialidade</th>
+    </tr>
+  `;
+
+  salas.forEach(s=>{
+    html += `
+    <tr>
+      <td>${s}</td>
+      <td contenteditable></td>
+      <td contenteditable></td>
+      <td contenteditable></td>
+      <td contenteditable></td>
+    </tr>`;
+  });
+
+  html += "</table>";
+  return html;
+}
+
+/* TABELA 1º ANDAR */
+function tabelaAndar(lista){
+
+  let html = `
+  <table>
+    <tr>
+      <th style="width:70px;">Sala</th>
+      <th style="width:60px;">Início</th>
+      <th style="width:60px;">Fim</th>
+      <th style="width:120px;">Médico</th>
+      <th style="width:180px;">Especialidade</th>
+    </tr>
+  `;
+
+  lista.forEach(s=>{
+    html += `
+    <tr>
+      <td>${s}</td>
+      <td contenteditable></td>
+      <td contenteditable></td>
+      <td contenteditable></td>
+      <td contenteditable></td>
+    </tr>`;
+  });
+
+  html += "</table>";
+  return html;
+}
+
+/* LIMPAR */
+function limpar(){
+  if(confirm("Limpar tudo?")){
+    document.querySelectorAll("[contenteditable]").forEach(e=>e.innerText="");
+  }
+}
+
+</script>
+
+</body>
+</html>
