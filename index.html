@@ -120,9 +120,9 @@ td[contenteditable]:focus{ background:#fff9c4; }
   <input type="date" id="dataBase">
   <button class="btn-azul" onclick="gerarSemana()">Nova Semana</button>
 
-  <select id="listaSemanas" onchange="carregarSemanaSelecionada()">
-    <option value="">Semanas Salvas</option>
-  </select>
+ <select id="listaSemanas" onchange="carregarSemanaSelecionada()">
+  <option value="">Semanas Salvas</option>
+</select>
 
   <button class="btn-verde" onclick="window.print()">Imprimir</button>
   <button class="btn-vermelho" onclick="excluirSemana()">Excluir Semana</button>
@@ -159,6 +159,7 @@ function gerarSemana(){
   if(!valor) return alert("Escolha uma data!");
 
   semanaAtual = valor;
+  localStorage.setItem("ultimaSemana", semanaAtual);
 
   const base = new Date(valor);
 
@@ -184,8 +185,51 @@ function gerarSemana(){
 
   container.innerHTML = linha1 + linha2;
 
-  atualizarListaSemanas();
-  setTimeout(carregarDados,200);
+requestAnimationFrame(() => {
+  setTimeout(() => {
+    carregarDados();
+    ativarTempoReal();
+  }, 300);
+});
+
+}
+
+function carregarSemanaSelecionada(){
+
+  const valor = document.getElementById("listaSemanas").value;
+
+  if(!valor) return;
+
+  semanaAtual = valor;
+
+  document.getElementById("agenda").innerHTML = "";
+
+  carregarDados();
+  ativarTempoReal();
+
+}
+function excluirSemana(){
+
+  if(!semanaAtual){
+    alert("Selecione uma semana!");
+    return;
+  }
+
+  if(!confirm("Deseja excluir esta semana?")) return;
+
+  db.collection("agenda").doc(semanaAtual).delete()
+  .then(() => {
+
+    alert("Semana excluída!");
+
+    semanaAtual = "";
+
+    document.getElementById("agenda").innerHTML = "";
+
+    atualizarListaSemanas();
+
+  });
+
 }
 
 function criarCard(titulo){
@@ -235,7 +279,119 @@ function tabela(lista){
   html += "</table>";
   return html;
 }
+function salvarDados(){
 
+  if(!semanaAtual) return;
+
+  const dados = [];
+
+  document.querySelectorAll("td[contenteditable]").forEach(c=>{
+    dados.push(c.innerText || "");
+  });
+
+  db.collection("agenda").doc(semanaAtual).set({
+    dados: dados
+  }, { merge: true });
+
+}
+
+
+function carregarDados(){
+
+  if(!semanaAtual) return;
+
+  db.collection("agenda").doc(semanaAtual).get()
+  .then(doc=>{
+
+    if(!doc.exists) return;
+
+    const dados = doc.data().dados || [];
+
+    const cells = document.querySelectorAll("td[contenteditable]");
+
+    cells.forEach((c,i)=>{
+      c.innerText = dados[i] || "";
+    });
+
+  })
+  .catch(err=>{
+    console.log("Erro ao carregar:", err);
+  });
+
+}
+let timeoutSalvar;
+
+document.addEventListener("input", (e)=>{
+  if(e.target && e.target.isContentEditable){
+
+    clearTimeout(timeoutSalvar);
+    timeoutSalvar = setTimeout(()=>{
+      salvarDados();
+    }, 400);
+
+  }
+});
+function ativarTempoReal(){
+
+  if(!semanaAtual) return;
+
+  db.collection("agenda").doc(semanaAtual)
+  .onSnapshot((doc)=>{
+
+    if(!doc.exists) return;
+
+    const dados = doc.data().dados || [];
+
+    document.querySelectorAll("td[contenteditable]").forEach((c,i)=>{
+
+      // evita sobrescrever o que a pessoa está digitando
+      if(document.activeElement !== c){
+        c.innerText = dados[i] || "";
+      }
+
+    });
+
+  });
+
+}
+window.onload = function(){
+
+  const hoje = new Date().toISOString().split("T")[0];
+  document.getElementById("dataBase").value = hoje;
+
+  const ultima = localStorage.getItem("ultimaSemana");
+
+  if(ultima){
+    document.getElementById("dataBase").value = ultima;
+    semanaAtual = ultima;
+    gerarSemana();
+  } else {
+    gerarSemana();
+  }
+
+  atualizarListaSemanas();
+};
+function atualizarListaSemanas(){
+
+  const select = document.getElementById("listaSemanas");
+
+  db.collection("agenda").get().then(snapshot => {
+
+    select.innerHTML = `<option value="">Semanas Salvas</option>`;
+
+    snapshot.forEach(doc => {
+
+      const option = document.createElement("option");
+      option.value = doc.id;
+      option.textContent = doc.id;
+
+      select.appendChild(option);
+
+    });
+
+  });
+
+}
 </script>
 
 </body>
