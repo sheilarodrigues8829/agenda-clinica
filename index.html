@@ -132,9 +132,8 @@ td[contenteditable]:focus{ background:#fff9c4; }
 
 <script>
 
-// 🔥 FIREBASE CONFIG
 const firebaseConfig = {
-  apiKey: "AIzaSyDdwpWkqtfPZhKa3OC8Wydqv9swOS1rL28",
+  apiKey: "AIzaSyDdwpWkqfPZhKa3OC8Wydqv9swOS1rL28",
   authDomain: "agenda-clinica-2c5c3.firebaseapp.com",
   projectId: "agenda-clinica-2c5c3"
 };
@@ -142,7 +141,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// DADOS
 const salas = [
   "Sala 05","Sala 06","Sala 07","Sala 08","Sala 09",
   "Sala 10","Sala 11","Sala 12","USG","GO","Oftal","Áudio","Fisio"
@@ -155,7 +153,6 @@ const dias = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
 
 let semanaAtual = "";
 
-// GERAR SEMANA
 function gerarSemana(){
 
   const valor = document.getElementById("dataBase").value;
@@ -191,7 +188,6 @@ function gerarSemana(){
   setTimeout(carregarDados,200);
 }
 
-// CARD
 function criarCard(titulo){
   return `
   <div class="card">
@@ -213,14 +209,18 @@ function criarCard(titulo){
   </div>`;
 }
 
-// TABELA
 function tabela(lista){
   let html = `
   <table>
     <tr>
-      <th>Sala</th><th>Início</th><th>Fim</th><th>Médico</th><th>Especialidade</th>
+      <th>Sala</th>
+      <th>Início</th>
+      <th>Fim</th>
+      <th>Médico</th>
+      <th>Especialidade</th>
     </tr>
   `;
+
   lista.forEach(s=>{
     html += `
     <tr>
@@ -231,103 +231,9 @@ function tabela(lista){
       <td contenteditable></td>
     </tr>`;
   });
+
   html += "</table>";
   return html;
-}
-
-// SALVAR
-function salvarDados(){
-
-  if(!semanaAtual) return;
-
-  const dados = [];
-  document.querySelectorAll("[contenteditable]").forEach(c=>{
-    dados.push(c.innerText);
-  });
-
-  // 🔥 NUVEM
-  db.collection("agenda").doc(semanaAtual).set({
-    dados: dados
-  });
-
-  // 🔥 BACKUP LOCAL
-  localStorage.setItem("semana_"+semanaAtual, JSON.stringify(dados));
-}
-
-// CARREGAR
-function carregarDados(){
-
-  db.collection("agenda").doc(semanaAtual).get()
-  .then(doc=>{
-    if(doc.exists){
-
-      const dados = doc.data().dados;
-
-      document.querySelectorAll("[contenteditable]").forEach((c,i)=>{
-        c.innerText = dados[i] || "";
-      });
-
-    } else {
-
-      const dadosLocal = JSON.parse(localStorage.getItem("semana_"+semanaAtual)) || [];
-
-      document.querySelectorAll("[contenteditable]").forEach((c,i)=>{
-        c.innerText = dadosLocal[i] || "";
-      });
-
-    }
-  });
-}
-
-// LISTA
-function atualizarListaSemanas(){
-  const select = document.getElementById("listaSemanas");
-  select.innerHTML = `<option>Semanas Salvas</option>`;
-
-  Object.keys(localStorage).forEach(key=>{
-    if(key.startsWith("semana_")){
-      const data = key.replace("semana_","");
-      select.innerHTML += `<option value="${data}">${data}</option>`;
-    }
-  });
-}
-
-// CARREGAR SEMANA
-function carregarSemanaSelecionada(){
-  const data = document.getElementById("listaSemanas").value;
-  if(!data) return;
-  document.getElementById("dataBase").value = data;
-  gerarSemana();
-}
-
-// EXCLUIR
-function excluirSemana(){
-
-  if(!semanaAtual){
-    alert("Selecione uma semana!");
-    return;
-  }
-
-  if(confirm("Deseja excluir essa semana?")){
-    localStorage.removeItem("semana_"+semanaAtual);
-    document.getElementById("agenda").innerHTML="";
-    atualizarListaSemanas();
-  }
-}
-
-// AUTO SAVE
-document.addEventListener("input", e=>{
-  if(e.target.hasAttribute("contenteditable")){
-    salvarDados();
-  }
-});
-
-// INICIO
-window.onload = function(){
-  const hoje = new Date().toISOString().split("T")[0];
-  document.getElementById("dataBase").value = hoje;
-  atualizarListaSemanas();
-  gerarSemana();
 }
 
 </script>
